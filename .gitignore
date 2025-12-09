@@ -35,6 +35,5 @@ Thumbs.db
 *.log
 .lein-failures
 
-# Documentation (commented files)
 docs/
 
