@@ -36,12 +36,9 @@ jobs:
 
     - name: Install dependencies
       run: lein deps
-      working-directory: interpolation
 
     - name: Check formatting
       run: lein cljfmt check
-      working-directory: interpolation
 
     - name: Run tests
       run: lein test
-      working-directory: interpolation
