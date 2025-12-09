@@ -1,0 +1,40 @@
+# Leiningen
+/target/
+/classes/
+/checkouts/
+pom.xml
+pom.xml.asc
+*.jar
+*.class
+
+# Leiningen profiles
+profiles.clj
+
+# REPL
+.nrepl-port
+.cpcache/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.calva/
+.clj-kondo/
+.lsp/
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+.lein-failures
+
+# Documentation (commented files)
+docs/
+
