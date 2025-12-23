@@ -9,7 +9,7 @@
 
 ## Тема
 
-**Потоковая интерполяция с поддержкой нескольких алгоритмов**
+**Потоковая интерполяция**
 
 ---
 
@@ -60,11 +60,11 @@
 
 | Файл | Назначение |
 |------|------------|
-| `core.clj` | Точка входа, композиция pipeline ([`core.clj:1-18`](src/interpolation/core.clj#L1-L18)) |
-| `cli.clj` | Парсинг аргументов командной строки ([`cli.clj:1-49`](src/interpolation/cli.clj#L1-L49)) |
-| `io.clj` | Чтение stdin / вывод в stdout ([`io.clj:1-26`](src/interpolation/io.clj#L1-L26)) |
-| `algorithms.clj` | Чистые функции интерполяции ([`algorithms.clj:1-97`](src/interpolation/algorithms.clj#L1-L97)) |
-| `streaming.clj` | Потоковая обработка со скользящим окном ([`streaming.clj:1-127`](src/interpolation/streaming.clj#L1-L127)) |
+| `core.clj` | Точка входа, композиция pipeline |
+| `cli.clj` | Парсинг аргументов командной строки |
+| `io.clj` | Чтение stdin / вывод в stdout |
+| `algorithms.clj` | Чистые функции интерполяции (defmulti interpolate) |
+| `streaming.clj` | Потоковая обработка со скользящим окном |
 
 ---
 
@@ -76,12 +76,15 @@
 
 $$y = y_1 + \frac{y_2 - y_1}{x_2 - x_1}(x - x_1)$$
 
-Реализация ([`algorithms.clj:4-13`](src/interpolation/algorithms.clj#L4-L13)):
+Реализация через defmulti:
 ```clojure
-(defn linear-interpolate [points x]
+(defmethod interpolate :linear
+  [_ points x]
   (let [{x1 :x y1 :y} (first points)
         {x2 :x y2 :y} (second points)]
-    (+ y1 (* (- y2 y1) (/ (- x x1) (- x2 x1))))))
+    (if (= x1 x2)
+      y1
+      (+ y1 (* (- y2 y1) (/ (- x x1) (- x2 x1)))))))
 ```
 
 ### Интерполяция Лагранжа
@@ -90,9 +93,10 @@ $$y = y_1 + \frac{y_2 - y_1}{x_2 - x_1}(x - x_1)$$
 
 $$L(x) = \sum_{i=0}^{n-1} y_i \prod_{j \neq i} \frac{x - x_j}{x_i - x_j}$$
 
-Реализация ([`algorithms.clj:52-77`](src/interpolation/algorithms.clj#L52-L77)):
+Реализация:
 ```clojure
-(defn lagrange-interpolate [points x]
+(defmethod interpolate :lagrange
+  [_ points x]
   (let [n (count points)]
     (reduce
      (fn [sum i]
@@ -107,7 +111,7 @@ $$L(x) = \sum_{i=0}^{n-1} y_i \prod_{j \neq i} \frac{x - x_j}{x_i - x_j}$$
 
 $$N(x) = f[x_0] + f[x_0,x_1](x-x_0) + f[x_0,x_1,x_2](x-x_0)(x-x_1) + \ldots$$
 
-Вычисление разделённых разностей ([`algorithms.clj:16-33`](src/interpolation/algorithms.clj#L16-L33)):
+Вычисление разделённых разностей:
 ```clojure
 (defn- compute-divided-differences [points]
   (let [n (count points)
@@ -145,7 +149,36 @@ o o o o o o . . x x x
 - `.` — точки в текущем окне
 - `x` — точки вне окна
 
-Реализация скользящего окна ([`streaming.clj:80-120`](src/interpolation/streaming.clj#L80-L120)).
+### Ключевые функции streaming.clj
+
+**interpolate-range** — единая функция интерполяции:
+```clojure
+(defn- interpolate-range [state x-start x-end]
+  (let [{:keys [algorithm step]} state
+        window (get-window state)
+        results (for [x (generate-x-values x-start x-end step)]
+                  {:x x :y (alg/interpolate algorithm window x)})
+        new-last-x (if (seq results) (:x (last results)) (:last-x state))]
+    [(assoc state :last-x new-last-x) results]))
+```
+
+**process-point** — обработка входящей точки:
+```clojure
+(defn process-point [state point]
+  (let [state (update state :buffer conj point)]
+    (if-not (has-full-window? state)
+      [state []]
+      (let [window (get-window state)
+            {:keys [algorithm last-x step]} state
+            first-window? (nil? last-x)
+            x-start (if first-window? 
+                      (:x (first window)) 
+                      (+ last-x step))
+            x-end (if (= algorithm :linear)
+                    (x-end-for-linear window)
+                    (x-end-for-polynomial window))]
+        (interpolate-range state x-start x-end)))))
+```
 
 ---
 
@@ -161,6 +194,8 @@ o o o o o o . . x x x
 | `-s`, `--step STEP` | Шаг дискретизации | 1.0 |
 | `-n`, `--points N` | Размер окна для Лагранжа/Ньютона | 4 |
 | `-h`, `--help` | Показать справку | — |
+
+**Примечание:** необходимо указать ОДИН алгоритм.
 
 ### Формат данных
 
@@ -188,14 +223,15 @@ newton: 2.0000 4.0000
 newton: 2.5000 6.2500
 newton: 3.0000 9.0000
 
-# Несколько алгоритмов одновременно
-$ echo -e "0 0\n1 1\n2 4" | lein run -- --linear --lagrange -n 3 --step 1
-linear: 0.0000 0.0000
-linear: 1.0000 1.0000
-linear: 2.0000 4.0000
+# Интерполяция Лагранжа
+$ echo -e "0 0\n1 1\n2 4\n3 9" | lein run -- --lagrange -n 3 --step 0.5
 lagrange: 0.0000 0.0000
+lagrange: 0.5000 0.2500
 lagrange: 1.0000 1.0000
+lagrange: 1.5000 2.2500
 lagrange: 2.0000 4.0000
+lagrange: 2.5000 6.2500
+lagrange: 3.0000 9.0000
 ```
 
 ---
@@ -205,12 +241,12 @@ lagrange: 2.0000 4.0000
 ### Unit-тесты ([`test/interpolation/core_test.clj`](test/interpolation/core_test.clj))
 
 Покрывают:
-- корректность линейной интерполяции ([`core_test.clj:13-30`](test/interpolation/core_test.clj#L13-L30));
-- корректность интерполяции Ньютона ([`core_test.clj:33-52`](test/interpolation/core_test.clj#L33-L52));
-- корректность интерполяции Лагранжа ([`core_test.clj:55-73`](test/interpolation/core_test.clj#L55-L73));
-- эквивалентность результатов Ньютона и Лагранжа ([`core_test.clj:69-73`](test/interpolation/core_test.clj#L69-L73));
-- парсинг аргументов CLI ([`core_test.clj:76-99`](test/interpolation/core_test.clj#L76-L99));
-- парсинг и форматирование I/O ([`core_test.clj:102-118`](test/interpolation/core_test.clj#L102-L118)).
+- корректность линейной интерполяции;
+- корректность интерполяции Ньютона;
+- корректность интерполяции Лагранжа;
+- эквивалентность результатов Ньютона и Лагранжа;
+- парсинг аргументов CLI;
+- парсинг и форматирование I/O.
 
 ### Запуск
 
@@ -237,6 +273,7 @@ $ lein cljfmt check
   - `loop/recur` для хвостовой рекурсии в вычислении разделённых разностей;
   - `reduce` для построения сумм в интерполяции Лагранжа;
   - `iterate` и `take-while` для ленивой генерации x-координат;
+  - `defmulti/defmethod` для полиморфной диспетчеризации алгоритмов;
   - функции высшего порядка (`map`, `filter`, `mapcat`) для обработки коллекций;
 - обеспечил **разделение I/O от бизнес-логики**: все алгоритмы — чистые функции без побочных эффектов;
-- настроил CI с тестами и линтером.
+- провёл рефакторинг для устранения дублирования кода и упрощения архитектуры.

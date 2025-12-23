@@ -29,8 +29,18 @@
 (defn error-msg [errors]
   (str "Errors:\n" (str/join \newline errors)))
 
+(defn- get-algorithm
+  "Extract single algorithm from options"
+  [options]
+  (cond
+    (:linear options) :linear
+    (:newton options) :newton
+    (:lagrange options) :lagrange
+    :else nil))
+
 (defn validate-args [args]
-  (let [{:keys [options arguments errors summary]} (parse-opts args cli-options)]
+  (let [{:keys [options arguments errors summary]} (parse-opts args cli-options)
+        algorithm (get-algorithm options)]
     (cond
       (:help options)
       {:exit-message (usage summary) :ok? true}
@@ -38,16 +48,9 @@
       errors
       {:exit-message (error-msg errors) :ok? false}
 
-      (not (or (:linear options) (:newton options) (:lagrange options)))
-      {:exit-message "Error: At least one algorithm must be specified (--linear, --newton, or --lagrange)\n\n"
+      (nil? algorithm)
+      {:exit-message "Error: Algorithm must be specified (--linear, --newton, or --lagrange)\n\n"
        :ok? false}
 
       :else
-      {:options options})))
-
-(defn get-algorithms [options]
-  (cond-> []
-    (:linear options) (conj :linear)
-    (:newton options) (conj :newton)
-    (:lagrange options) (conj :lagrange)))
-
+      {:options (assoc options :algorithm algorithm)})))

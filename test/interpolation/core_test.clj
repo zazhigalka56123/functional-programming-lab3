@@ -13,90 +13,90 @@
 (deftest linear-interpolation-test
   (testing "Linear interpolation between two points"
     (let [points [{:x 0 :y 0} {:x 1 :y 1}]]
-      (is (approx= 0.0 (alg/linear-interpolate points 0)))
-      (is (approx= 0.5 (alg/linear-interpolate points 0.5)))
-      (is (approx= 1.0 (alg/linear-interpolate points 1)))))
+      (is (approx= 0.0 (alg/interpolate :linear points 0)))
+      (is (approx= 0.5 (alg/interpolate :linear points 0.5)))
+      (is (approx= 1.0 (alg/interpolate :linear points 1)))))
 
   (testing "Linear interpolation with different slope"
     (let [points [{:x 0 :y 0} {:x 2 :y 4}]]
-      (is (approx= 0.0 (alg/linear-interpolate points 0)))
-      (is (approx= 2.0 (alg/linear-interpolate points 1)))
-      (is (approx= 4.0 (alg/linear-interpolate points 2)))))
+      (is (approx= 0.0 (alg/interpolate :linear points 0)))
+      (is (approx= 2.0 (alg/interpolate :linear points 1)))
+      (is (approx= 4.0 (alg/interpolate :linear points 2)))))
 
   (testing "Linear interpolation with negative values"
     (let [points [{:x -1 :y -2} {:x 1 :y 2}]]
-      (is (approx= 0.0 (alg/linear-interpolate points 0)))
-      (is (approx= -2.0 (alg/linear-interpolate points -1)))
-      (is (approx= 2.0 (alg/linear-interpolate points 1))))))
+      (is (approx= 0.0 (alg/interpolate :linear points 0)))
+      (is (approx= -2.0 (alg/interpolate :linear points -1)))
+      (is (approx= 2.0 (alg/interpolate :linear points 1))))))
 
 ;; Newton interpolation tests
 (deftest newton-interpolation-test
   (testing "Newton interpolation for linear function"
     (let [points [{:x 0 :y 0} {:x 1 :y 1} {:x 2 :y 2}]]
-      (is (approx= 0.0 (alg/newton-interpolate points 0)))
-      (is (approx= 0.5 (alg/newton-interpolate points 0.5)))
-      (is (approx= 1.5 (alg/newton-interpolate points 1.5)))))
+      (is (approx= 0.0 (alg/interpolate :newton points 0)))
+      (is (approx= 0.5 (alg/interpolate :newton points 0.5)))
+      (is (approx= 1.5 (alg/interpolate :newton points 1.5)))))
 
   (testing "Newton interpolation for quadratic function (y = x^2)"
     (let [points [{:x 0 :y 0} {:x 1 :y 1} {:x 2 :y 4}]]
-      (is (approx= 0.0 (alg/newton-interpolate points 0)))
-      (is (approx= 1.0 (alg/newton-interpolate points 1)))
-      (is (approx= 4.0 (alg/newton-interpolate points 2)))
-      (is (approx= 0.25 (alg/newton-interpolate points 0.5)))))
+      (is (approx= 0.0 (alg/interpolate :newton points 0)))
+      (is (approx= 1.0 (alg/interpolate :newton points 1)))
+      (is (approx= 4.0 (alg/interpolate :newton points 2)))
+      (is (approx= 0.25 (alg/interpolate :newton points 0.5)))))
 
   (testing "Newton interpolation with 4 points"
     (let [points [{:x 0 :y 0} {:x 1 :y 1} {:x 2 :y 8} {:x 3 :y 27}]]
-      (is (approx= 0.0 (alg/newton-interpolate points 0)))
-      (is (approx= 1.0 (alg/newton-interpolate points 1)))
-      (is (approx= 8.0 (alg/newton-interpolate points 2)))
-      (is (approx= 27.0 (alg/newton-interpolate points 3))))))
+      (is (approx= 0.0 (alg/interpolate :newton points 0)))
+      (is (approx= 1.0 (alg/interpolate :newton points 1)))
+      (is (approx= 8.0 (alg/interpolate :newton points 2)))
+      (is (approx= 27.0 (alg/interpolate :newton points 3))))))
 
 ;; Lagrange interpolation tests
 (deftest lagrange-interpolation-test
   (testing "Lagrange interpolation for linear function"
     (let [points [{:x 0 :y 0} {:x 1 :y 1} {:x 2 :y 2}]]
-      (is (approx= 0.0 (alg/lagrange-interpolate points 0)))
-      (is (approx= 0.5 (alg/lagrange-interpolate points 0.5)))
-      (is (approx= 1.5 (alg/lagrange-interpolate points 1.5)))))
+      (is (approx= 0.0 (alg/interpolate :lagrange points 0)))
+      (is (approx= 0.5 (alg/interpolate :lagrange points 0.5)))
+      (is (approx= 1.5 (alg/interpolate :lagrange points 1.5)))))
 
   (testing "Lagrange interpolation for quadratic function (y = x^2)"
     (let [points [{:x 0 :y 0} {:x 1 :y 1} {:x 2 :y 4}]]
-      (is (approx= 0.0 (alg/lagrange-interpolate points 0)))
-      (is (approx= 1.0 (alg/lagrange-interpolate points 1)))
-      (is (approx= 4.0 (alg/lagrange-interpolate points 2)))
-      (is (approx= 0.25 (alg/lagrange-interpolate points 0.5)))))
+      (is (approx= 0.0 (alg/interpolate :lagrange points 0)))
+      (is (approx= 1.0 (alg/interpolate :lagrange points 1)))
+      (is (approx= 4.0 (alg/interpolate :lagrange points 2)))
+      (is (approx= 0.25 (alg/interpolate :lagrange points 0.5)))))
 
   (testing "Lagrange interpolation matches Newton for same points"
     (let [points [{:x 0 :y 1} {:x 1 :y 3} {:x 2 :y 7} {:x 3 :y 13}]]
       (doseq [x [0.5 1.5 2.5]]
-        (is (approx= (alg/newton-interpolate points x)
-                     (alg/lagrange-interpolate points x)))))))
+        (is (approx= (alg/interpolate :newton points x)
+                     (alg/interpolate :lagrange points x)))))))
 
 ;; CLI tests
 (deftest cli-test
-  (testing "Valid arguments parsing"
+  (testing "Valid arguments parsing - linear"
     (let [result (cli/validate-args ["--linear" "--step" "0.5"])]
       (is (nil? (:exit-message result)))
       (is (:linear (:options result)))
-      (is (= 0.5 (:step (:options result))))))
+      (is (= 0.5 (:step (:options result))))
+      (is (= :linear (:algorithm (:options result))))))
 
-  (testing "Multiple algorithms"
-    (let [result (cli/validate-args ["--linear" "--newton" "-n" "4"])]
+  (testing "Valid arguments parsing - newton"
+    (let [result (cli/validate-args ["--newton" "-n" "4"])]
       (is (nil? (:exit-message result)))
-      (is (:linear (:options result)))
       (is (:newton (:options result)))
-      (is (= 4 (:points (:options result))))))
+      (is (= 4 (:points (:options result))))
+      (is (= :newton (:algorithm (:options result))))))
+
+  (testing "Valid arguments parsing - lagrange"
+    (let [result (cli/validate-args ["--lagrange" "-n" "5"])]
+      (is (nil? (:exit-message result)))
+      (is (= :lagrange (:algorithm (:options result))))))
 
   (testing "No algorithm specified"
     (let [result (cli/validate-args ["--step" "0.5"])]
       (is (some? (:exit-message result)))
-      (is (not (:ok? result)))))
-
-  (testing "Get algorithms list"
-    (is (= [:linear] (cli/get-algorithms {:linear true})))
-    (is (= [:linear :newton] (cli/get-algorithms {:linear true :newton true})))
-    (is (= [:linear :newton :lagrange]
-           (cli/get-algorithms {:linear true :newton true :lagrange true})))))
+      (is (not (:ok? result))))))
 
 ;; IO tests
 (deftest io-test
