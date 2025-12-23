@@ -57,8 +57,8 @@
       (let [window (get-window state)
             {:keys [algorithm last-x step]} state
             first-window? (nil? last-x)
-            x-start (if first-window? 
-                      (:x (first window)) 
+            x-start (if first-window?
+                      (:x (first window))
                       (+ last-x step))
             x-end (if (= algorithm :linear)
                     (x-end-for-linear window)
@@ -69,7 +69,7 @@
 (defn finalize-stream
   "Process the final window when stream ends"
   [state]
-  (when (and (has-full-window? state) 
+  (when (and (has-full-window? state)
              (not= (:algorithm state) :linear)
              (:last-x state))
     (let [window (get-window state)
